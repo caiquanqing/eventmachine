@@ -150,7 +150,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		throw std::runtime_error ("no SSL context");
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
-	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
+	//SSL_CTX_set_options (pCtx, (SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3) | SSL_OP_NO_TLSv1);
 #ifdef SSL_MODE_RELEASE_BUFFERS
 	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
 #endif
@@ -160,6 +160,8 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		int e;
 		if (privkeyfile.length() > 0)
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
+		else if (certchainfile.length() > 0)
+			e = SSL_CTX_use_PrivateKey_file (pCtx, certchainfile.c_str(), SSL_FILETYPE_PEM);
 		else
 			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
 		if (e <= 0) ERR_print_errors_fp(stderr);
@@ -171,9 +173,13 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
 		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
+
+		if (pCtx->extra_certs != NULL && sk_X509_num (pCtx->extra_certs) > 0)
+			SSL_CTX_add_client_CA (pCtx, sk_X509_value (pCtx->extra_certs, 0));
 	}
 
 	SSL_CTX_set_cipher_list (pCtx, "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH");
+	SSL_CTX_set_default_verify_paths (pCtx);
 
 	if (is_server) {
 		SSL_CTX_sess_set_cache_size (pCtx, 128);
@@ -186,6 +192,8 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
+		else if (certchainfile.length() > 0)
+			e = SSL_CTX_use_PrivateKey_file (pCtx, certchainfile.c_str(), SSL_FILETYPE_PEM);
 
 		if (certchainfile.length() > 0) {
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
