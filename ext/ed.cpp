@@ -217,6 +217,8 @@ EventableDescriptor::ScheduleClose
 
 void EventableDescriptor::ScheduleClose (bool after_writing)
 {
+	if (IsCloseScheduled())
+		return;
 	MyEventMachine->NumCloseScheduled++;
 	// KEEP THIS SYNCHRONIZED WITH ::IsCloseScheduled.
 	if (after_writing)
@@ -783,6 +785,8 @@ void ConnectionDescriptor::Read()
 			// a security guard against buffer overflows.
 			readbuffer [r] = 0;
 			_DispatchInboundData (readbuffer, r);
+			if (bPaused)
+				break;
 		}
 		else if (r == 0) {
 			break;

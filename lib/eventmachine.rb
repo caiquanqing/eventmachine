@@ -156,7 +156,7 @@ module EventMachine
     # will start without release_machine being called and will immediately throw
 
     #
-    if reactor_running? and @reactor_pid != Process.pid
+    if @reactor_running and @reactor_pid != Process.pid
       # Reactor was started in a different parent, meaning we have forked.
       # Clean up reactor state so a new reactor boots up in this child.
       stop_event_loop
@@ -531,6 +531,15 @@ module EventMachine
     s
   end
 
+  # Attach to an existing socket's file descriptor. The socket may have been
+  # started with {EventMachine.start_server}.
+  def self.attach_server sock, handler=nil, *args, &block
+    klass = klass_from_handler(Connection, handler, *args)
+    sd = sock.respond_to?(:fileno) ? sock.fileno : sock
+    s = attach_sd(sd)
+    @acceptors[s] = [klass,args,block,sock]
+    s
+  end
 
   # Stop a TCP server socket that was started with {EventMachine.start_server}.
   # @see EventMachine.start_server
@@ -1181,7 +1190,7 @@ module EventMachine
   #
   # @return [Boolean] true if the EventMachine reactor loop is currently running
   def self.reactor_running?
-    (@reactor_running || false)
+    @reactor_running && Process.pid == @reactor_pid
   end
 
 

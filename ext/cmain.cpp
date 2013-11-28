@@ -259,6 +259,7 @@ evma_num_close_scheduled
 
 extern "C" int evma_num_close_scheduled ()
 {
+	ensure_eventmachine("evma_num_close_scheduled");
 	return EventMachine->NumCloseScheduled;
 }
 
@@ -280,6 +281,16 @@ extern "C" const unsigned long evma_create_unix_domain_server (const char *filen
 {
 	ensure_eventmachine("evma_create_unix_domain_server");
 	return EventMachine->CreateUnixDomainServer (filename);
+}
+
+/***********************
+evma_attach_sd
+************************/
+
+extern "C" const unsigned long evma_attach_sd (int sd)
+{
+	ensure_eventmachine("evma_attach_sd");
+	return EventMachine->AttachSD (sd);
 }
 
 /*************************
